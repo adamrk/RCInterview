@@ -18,7 +18,6 @@ def parse_keyval(in_string):
 def parse_request(request):
     # first line of entry is "GET /set?key=val HTTP/1.1"
     # we select the second entry
-    print(request)
     get_header = request.split("\r\n")[0].split(" ")[1]
     command, keyval = set_or_get(get_header)
     key, val = parse_keyval(keyval)
@@ -41,7 +40,10 @@ if __name__ == "__main__":
         conn, addr = serversocket.accept()
         print "connection from %s" % str(addr)
         request = conn.recv(1028)
-        command, key, val = parse_request(request)
+        try:
+            command, key, val = parse_request(request)
+        except:
+            command = None
         if command == "set":
             database[key] = val
             conn.send(ok_request("database updated"))
