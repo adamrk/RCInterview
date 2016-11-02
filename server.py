@@ -17,7 +17,6 @@ work on making it more efficient if you have time.
 
 import socket as soc
 import threading
-import pdb
 
 def set_or_get(in_string):
     # reads http path from header
@@ -72,7 +71,6 @@ def handle_conn(conn, addr, database, db_lock):
         db_lock.release()
     else:
         conn.send(bad_request("parsing error"))
-    pdb.set_trace()
     conn.close()
 
 def run_server():
