@@ -3,7 +3,7 @@
 """
 Task: Database Server
 
-Before your interview, write a program that runs a server that is 
+Before your interview, write a program that run_serverns a server that is 
 accessible on http://localhost:4000/. When your server receives a 
 request on http://localhost:4000/set?somekey=somevalue it should 
 store the passed key and value in memory. When it receives a 
@@ -16,6 +16,8 @@ work on making it more efficient if you have time.
 """
 
 import socket as soc
+import threading
+import pdb
 
 def set_or_get(in_string):
     # reads http path from header
@@ -46,8 +48,36 @@ def ok_request(msg):
 def bad_request(msg):
     return "HTTP/1.1 500 Internal Server Error\r\n\r\n%s\r\n" % msg
 
+def handle_conn(conn, addr, database, db_lock):
+    request = conn.recv(1024)
+    print "request received:\n%s" % request.split("\r\n")[0]
+    try:
+        command, key, val = parse_request(request)
+        # this will throw error if request doens't fit
+        # '/set?key=val' or '/get?key=val'
+    except:
+        command = None
+    if command == "set":
+        db_lock.acquire()
+        database[key] = val
+        db_lock.release()
+        conn.send(ok_request("database updated"))
+    elif command == "get":
+        db_lock.acquire() # do we need to lock if only reading?
+        try:
+            resp_val = database[val]
+            conn.send(ok_request(resp_val))
+        except KeyError:
+            conn.send(bad_request("key not present"))
+        db_lock.release()
+    else:
+        conn.send(bad_request("parsing error"))
+    pdb.set_trace()
+    conn.close()
+
 def run_server():
     database = {} #just save key/values in a dict
+    db_lock = threading.RLock()
 
     # socket to listen for connections
     serversocket = soc.socket(soc.AF_INET, soc.SOCK_STREAM)
@@ -57,26 +87,11 @@ def run_server():
     while True:
         conn, addr = serversocket.accept()
         print "connection from %s" % str(addr)
-        request = conn.recv(1024)
-        print "request received:\n%s" % request.split("\r\n")[0]
-        try:
-            command, key, val = parse_request(request)
-            # this will throw error if request doens't fit
-            # '/set?key=val' or '/get?key=val'
-        except:
-            command = None
-        if command == "set":
-            database[key] = val
-            conn.send(ok_request("database updated"))
-        elif command == "get":
-            try:
-                resp_val = database[val]
-                conn.send(ok_request(resp_val))
-            except KeyError:
-                conn.send(bad_request("key not present"))
-        else:
-            conn.send(bad_request("parsing error"))
-        conn.close()
+        thread = threading.Thread(
+            target=handle_conn,
+            args=(conn, addr, database, db_lock))
+        thread.start()
+        
 
 if __name__ == "__main__":
     run_server()
