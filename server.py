@@ -46,7 +46,7 @@ def ok_request(msg):
 def bad_request(msg):
     return "HTTP/1.1 500 Internal Server Error\r\n\r\n%s\r\n" % msg
 
-if __name__ == "__main__":
+def run_server():
     database = {} #just save key/values in a dict
 
     # socket to listen for connections
@@ -58,6 +58,7 @@ if __name__ == "__main__":
         conn, addr = serversocket.accept()
         print "connection from %s" % str(addr)
         request = conn.recv(1024)
+        print "request received:\n%s" % request.split("\r\n")[0]
         try:
             command, key, val = parse_request(request)
             # this will throw error if request doens't fit
@@ -68,8 +69,14 @@ if __name__ == "__main__":
             database[key] = val
             conn.send(ok_request("database updated"))
         elif command == "get":
-            resp_val = database[val]
-            conn.send(ok_request(resp_val))
+            try:
+                resp_val = database[val]
+                conn.send(ok_request(resp_val))
+            except KeyError:
+                conn.send(bad_request("key not present"))
         else:
             conn.send(bad_request("parsing error"))
         conn.close()
+
+if __name__ == "__main__":
+    run_server()
