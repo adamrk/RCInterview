@@ -3,7 +3,7 @@
 """
 Task: Database Server
 
-Before your interview, write a program that run_serverns a server that is 
+Before your interview, write a program that runs a server that is 
 accessible on http://localhost:4000/. When your server receives a 
 request on http://localhost:4000/set?somekey=somevalue it should 
 store the passed key and value in memory. When it receives a 
@@ -17,7 +17,6 @@ work on making it more efficient if you have time.
 
 import socket as soc
 import threading
-import pdb
 
 def set_or_get(in_string):
     # reads http path from header
@@ -72,7 +71,6 @@ def handle_conn(conn, addr, database, db_lock):
         db_lock.release()
     else:
         conn.send(bad_request("parsing error"))
-    pdb.set_trace()
     conn.close()
 
 def run_server():
