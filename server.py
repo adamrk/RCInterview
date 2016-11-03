@@ -57,18 +57,14 @@ def handle_conn(conn, addr, database, db_lock):
     except:
         command = None
     if command == "set":
-        db_lock.acquire()
         database[key] = val
-        db_lock.release()
         conn.send(ok_request("database updated"))
     elif command == "get":
-        db_lock.acquire() # do we need to lock if only reading?
         try:
             resp_val = database[val]
             conn.send(ok_request(resp_val))
         except KeyError:
             conn.send(bad_request("key not present"))
-        db_lock.release()
     else:
         conn.send(bad_request("parsing error"))
     conn.close()
