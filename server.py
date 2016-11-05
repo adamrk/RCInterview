@@ -16,6 +16,7 @@ work on making it more efficient if you have time.
 """
 
 import socket as soc
+import cPickle
 import threading
 
 def set_or_get(in_string):
@@ -57,7 +58,11 @@ def handle_conn(conn, addr, database, db_lock):
     except:
         command = None
     if command == "set":
-        database[key] = val
+        with db_lock:
+            database[key] = val
+            file = open('db', 'w')
+            cPickle.dump(database, file)
+            file.close()
         conn.send(ok_request("database updated"))
     elif command == "get":
         try:
@@ -70,7 +75,12 @@ def handle_conn(conn, addr, database, db_lock):
     conn.close()
 
 def run_server():
-    database = {} #just save key/values in a dict
+    dbfile = open('db', 'a+')
+    try:
+        database = cPickle.load(dbfile) #just save key/values in a dict
+    except EOFError:
+        database = {}
+    dbfile.close()
     db_lock = threading.RLock()
 
     # socket to listen for connections
